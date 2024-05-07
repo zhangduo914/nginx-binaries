@@ -62,7 +62,7 @@ configure() {
 		--without-http_split_clients_module \
 		--without-http_fastcgi_module \
 		--without-http_uwsgi_module \
-		--with-http_scgi_module \
+		--without-http_scgi_module \
 		--with-http_stub_status_module \
 		--without-http_grpc_module \
 		--without-http_memcached_module \
