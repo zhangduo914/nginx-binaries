@@ -11,8 +11,6 @@ on:
       - patches/*
       - scripts/*
   pull_request:
-  schedule:
-    - cron:  '0 0 * * 0'  # run each Sunday
 
 env:
   ALPINE_BRANCH: v3.18
