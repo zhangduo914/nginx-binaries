@@ -38,6 +38,7 @@ env:
     openresty/set-misc-nginx-module
   # Don't update binaries with unchanged sources.
   SKIP_SAME_SOURCES: true
+  env_test: zhangduo
 
 jobs:
   njs-multi-linux:
@@ -163,7 +164,7 @@ jobs:
           path: master
 
       - name: Download and extract nginx
-        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }} && sed -i "s/#define NGINX_VERSION .*/#define NGINX_VERSION      \"zhangduo\"/" src/core/nginx.h
+        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }} && sed -i "s/#define NGINX_VERSION .*/#define NGINX_VERSION      \"zhangduo\"/" src/core/nginx.h && echo "variable from shell environment :$env_test"
 
       - name: Download and extract nginx modules
         run: ./master/scripts/fetch-sources nginx/njs@${{ matrix.NJS_VERSION }} $NGINX_MODULES
