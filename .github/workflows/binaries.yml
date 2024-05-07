@@ -164,7 +164,7 @@ jobs:
           path: master
 
       - name: Download and extract nginx
-        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }} && sed -i "s/#define NGINX_VERSION .*/#define NGINX_VERSION      \"zhangduo\"/" src/core/nginx.h && echo "variable from shell environment :$env_test"
+        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }} && sed -i "s/#define NGINX_VERSION .*/#define NGINX_VERSION      \"$env_test\"/" src/core/nginx.h
 
       - name: Download and extract nginx modules
         run: ./master/scripts/fetch-sources nginx/njs@${{ matrix.NJS_VERSION }} $NGINX_MODULES
