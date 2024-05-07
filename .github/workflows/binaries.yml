@@ -38,7 +38,7 @@ env:
     openresty/set-misc-nginx-module
   # Don't update binaries with unchanged sources.
   SKIP_SAME_SOURCES: true
-  env_test: zhangduo
+  env_test: ${{ secrets.CUSTOM_NGINX_VERSION }}
 
 jobs:
   njs-multi-linux:
