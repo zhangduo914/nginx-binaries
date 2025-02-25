@@ -164,7 +164,7 @@ jobs:
           path: master
 
       - name: Download and extract nginx
-        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }} &&  sed -i "s/#define NGINX_VERSION .*/#define NGINX_VERSION      \"$env_test\"/" src/core/nginx.h
+        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }} && sed 's/#define NGINX_VERSION      "1.25.5"/#define NGINX_VERSION      "SHINDATA-1.22.0"/' src/core/nginx.h
 
       - name: Download and extract nginx modules
         run: ./master/scripts/fetch-sources nginx/njs@${{ matrix.NJS_VERSION }} $NGINX_MODULES
