@@ -51,6 +51,7 @@ configure() {
 		--with-cc-opt="${CFLAGS:-}" \
 		--with-ld-opt="${LDFLAGS:-}" \
 		--with-debug \
+		--with-ipv6 \
 		--with-http_ssl_module \
 		--with-http_v2_module \
 		--with-http_realip_module \
