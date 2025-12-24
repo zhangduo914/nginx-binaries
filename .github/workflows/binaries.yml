@@ -147,7 +147,7 @@ jobs:
         NGINX_VERSION:
           - 1.24.x
           - 1.25.x
-          - 1.26.x
+          - 1.28.x
         ARCH:
           - x86_64
           - aarch64
@@ -164,7 +164,7 @@ jobs:
           path: master
 
       - name: Download and extract nginx
-        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }} && sed -i 's/#define NGINX_VERSION[[:space:]]*"[^"]*"/#define NGINX_VERSION      "SHINDATA-1.23.0"/' src/core/nginx.h
+        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }}
 
       - name: Download and extract nginx modules
         run: ./master/scripts/fetch-sources nginx/njs@${{ matrix.NJS_VERSION }} $NGINX_MODULES
@@ -207,7 +207,7 @@ jobs:
         NGINX_VERSION:
           - 1.24.x
           - 1.25.x
-          - 1.26.x
+          - 1.28.x
         include:
           - NJS_VERSION: 0.x.x
           # Pin older njs version for old nginx.
