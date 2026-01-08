@@ -29,6 +29,7 @@ env:
     openresty/echo-nginx-module
     openresty/headers-more-nginx-module
     openresty/set-misc-nginx-module
+    openresty/headers-more-nginx-module
   # The same as above, but for Windows.
   # - kjdev/nginx-auth-jwt, kjdev/nginx-keyval: a bit complicated to build (TODO)
   NGINX_MODULES_WIN32: >-
