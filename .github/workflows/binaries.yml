@@ -145,6 +145,8 @@ jobs:
     strategy:
       matrix:
         NGINX_VERSION:
+          - 1.24.x
+          - 1.25.x
           - 1.28.x
         ARCH:
           - x86_64
@@ -203,6 +205,8 @@ jobs:
     strategy:
       matrix:
         NGINX_VERSION:
+          - 1.24.x
+          - 1.25.x
           - 1.28.x
         include:
           - NJS_VERSION: 0.x.x
@@ -252,7 +256,9 @@ jobs:
     strategy:
       matrix:
         NGINX_VERSION:
-          - 1.28.x
+          - 1.24.x
+          - 1.25.x
+          - 1.26.x
     steps:
       - name: Setup MSYS2 and install packages
         uses: msys2/setup-msys2@v2
