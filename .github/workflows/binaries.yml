@@ -29,14 +29,6 @@ env:
     openresty/echo-nginx-module
     openresty/headers-more-nginx-module
     openresty/set-misc-nginx-module
-    openresty/headers-more-nginx-module
-  # The same as above, but for Windows.
-  # - kjdev/nginx-auth-jwt, kjdev/nginx-keyval: a bit complicated to build (TODO)
-  NGINX_MODULES_WIN32: >-
-    vision5/ngx_devel_kit
-    openresty/echo-nginx-module
-    openresty/headers-more-nginx-module
-    openresty/set-misc-nginx-module
   # Don't update binaries with unchanged sources.
   SKIP_SAME_SOURCES: true
   env_test: ${{ secrets.CUSTOM_NGINX_VERSION }}
@@ -95,59 +87,12 @@ jobs:
           name: njs-${{ matrix.NJS_VERSION }}${{ matrix.VARIANT }}-${{ matrix.ARCH }}-linux
           path: artifact/*
 
-  njs-x86_64-darwin:
-    name: njs-${{ matrix.NJS_VERSION }}${{ matrix.VARIANT }}-x86_64-darwin
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        NJS_VERSION:
-          - 0.x.x
-        VARIANT:
-          - '-debug'
-          - ''
-    steps:
-      - name: Install dependencies
-        run: brew install gsed jq libedit openssl@3 ncurses pcre zlib
-
-      - name: Checkout master branch
-        uses: actions/checkout@v4
-        with:
-          path: master
-
-      - name: Download and extract njs
-        run: ./master/scripts/fetch-sources -d . nginx/njs@${{ matrix.NJS_VERSION }}
-
-      # cmake prefers dynamic libs and there's no option to change it, so
-      # we have to remove them to give it no other option than using static.
-      - name: Remove dylibs
-        run: |
-          rm /opt/homebrew/opt/libedit/lib/*.dylib
-          rm /opt/homebrew/opt/openssl/lib/*.dylib
-          rm /opt/homebrew/opt/ncurses/lib/*.dylib
-          rm /opt/homebrew/opt/pcre/lib/*.dylib
-          rm /opt/homebrew/opt/zlib/lib/*.dylib
-
-      - name: Build njs
-        env:
-          VARIANT: ${{ matrix.VARIANT }}
-          CFLAGS: ${{ env.CFLAGS }} -I/opt/homebrew/opt/libedit/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/pcre/include -I/opt/homebrew/opt/zlib/include
-          LDFLAGS: ${{ env.DARWIN_LDFLAGS }} -L/opt/homebrew/opt/libedit/lib -L/opt/homebrew/opt/openssl/lib -L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/pcre/lib -L/opt/homebrew/opt/zlib/lib
-        run: ./master/scripts/build-njs
-
-      - name: Upload njs binary to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: njs-${{ matrix.NJS_VERSION }}${{ matrix.VARIANT }}-x86_64-darwin
-          path: artifact/*
-
   nginx-multi-linux:
     name: nginx-${{ matrix.NGINX_VERSION }}-${{ matrix.ARCH }}-linux
     runs-on: ubuntu-latest
     strategy:
       matrix:
         NGINX_VERSION:
-          - 1.24.x
-          - 1.25.x
           - 1.28.x
         ARCH:
           - x86_64
@@ -200,130 +145,11 @@ jobs:
           name: nginx-${{ matrix.NGINX_VERSION }}-${{ matrix.ARCH }}-linux
           path: artifact/*
 
-  nginx-x86_64-darwin:
-    name: nginx-${{ matrix.NGINX_VERSION }}-x86_64-darwin
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        NGINX_VERSION:
-          - 1.24.x
-          - 1.25.x
-          - 1.28.x
-        include:
-          - NJS_VERSION: 0.x.x
-          # Pin older njs version for old nginx.
-          - NGINX_VERSION: 1.24.x
-            NJS_VERSION: 0.8.x
-    steps:
-      - name: Install dependencies
-        run: brew install gsed jansson jq openssl@3 pcre zlib
-
-      - name: Checkout master branch
-        uses: actions/checkout@v4
-        with:
-          path: master
-
-      - name: Download and extract nginx
-        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }}
-
-      - name: Download and extract nginx modules
-        run: ./master/scripts/fetch-sources nginx/njs@${{ matrix.NJS_VERSION }} $NGINX_MODULES
-
-      # cmake prefers dynamic libs and there's no option to change it, so
-      # we have to remove them to give it no other option than using static.
-      - name: Remove dylibs
-        run: |
-          rm /opt/homebrew/opt/jansson/lib/*.dylib
-          rm /opt/homebrew/opt/openssl/lib/*.dylib
-          rm /opt/homebrew/opt/pcre/lib/*.dylib
-          rm /opt/homebrew/opt/zlib/lib/*.dylib
-
-      - name: Build nginx
-        env:
-          NGINX_MODULES: nginx/njs ${{ env.NGINX_MODULES }}
-          CFLAGS: ${{ env.CFLAGS }} -I/opt/homebrew/opt/jansson/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/opt/pcre/include -I/opt/homebrew/opt/zlib/include
-          LDFLAGS: ${{ env.DARWIN_LDFLAGS }} -L/opt/homebrew/opt/jansson/lib -L/opt/homebrew/opt/openssl/lib -L/opt/homebrew/opt/pcre/lib -L/opt/homebrew/opt/zlib/lib
-        run: ./master/scripts/build-nginx
-
-      - name: Upload nginx binary to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: nginx-${{ matrix.NGINX_VERSION }}-x86_64-darwin
-          path: artifact/*
-
-  nginx-x86_64-win32:
-    name: nginx-${{ matrix.NGINX_VERSION }}-x86_64-win32
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        NGINX_VERSION:
-          - 1.24.x
-          - 1.25.x
-          - 1.26.x
-    steps:
-      - name: Setup MSYS2 and install packages
-        uses: msys2/setup-msys2@v2
-        with:
-          update: false
-          install: base-devel mingw-w64-x86_64-toolchain mingw-w64-x86_64-jq
-
-      - name: Checkout master branch
-        uses: actions/checkout@v4
-        with:
-          path: master
-
-      - name: Download and extract nginx
-        shell: msys2 {0}
-        run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }}
-
-      - name: Download and extract nginx MSYS2 patches
-        shell: msys2 {0}
-        run: ./master/scripts/fetch-sources -d msys2 "myfreeer/nginx-build-msys2@1.22.0"
-
-      - name: Download and extract nginx modules
-        shell: msys2 {0}
-        run: ./master/scripts/fetch-sources $NGINX_MODULES_WIN32
-
-      - name: Download and extract libraries
-        shell: msys2 {0}
-        run: ./master/scripts/fetch-sources 'openssl@3.1.x' 'pcre@8.x' 'madler/zlib@v1.2.x'
-
-      - name: Apply patches
-        shell: msys2 {0}
-        run: |
-          case "${{ matrix.NGINX_VERSION }}" in
-            1.2[0-2].x)
-              for i in msys2/nginx-*.patch; do
-                patch -p1 < $i
-              done
-            ;;
-            # Other patches are not needed since 1.23.4.
-            *) patch -p1 < msys2/nginx-0007-logs-write-access-log-to-stderr.patch;;
-          esac
-
-      - name: Build nginx
-        shell: msys2 {0}
-        env:
-          NGINX_MODULES: ${{ env.NGINX_MODULES_WIN32 }}
-          # -DFD_SETSIZE=1024 is per official nginx win32 binary.
-          CFLAGS: ${{ env.CFLAGS }} -DFD_SETSIZE=1024
-          LDFLAGS: ${{ env.WIN32_LDFLAGS }}
-        run: ./master/scripts/build-nginx
-
-      - name: Upload nginx binary to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: nginx-${{ matrix.NGINX_VERSION }}-x86_64-win32
-          path: artifact/*
-
   upload:
     name: Upload binaries
     needs:
       - njs-multi-linux
-      - njs-x86_64-darwin
       - nginx-multi-linux
-      - nginx-x86_64-darwin
-      - nginx-x86_64-win32
     if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     container:
