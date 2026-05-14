@@ -153,9 +153,6 @@ jobs:
           - ppc64le
         include:
           - NJS_VERSION: 0.x.x
-          # Pin older njs version for old stable nginx.
-          - NGINX_VERSION: 1.24.x
-            NJS_VERSION: 0.8.x
     steps:
       - name: Checkout master branch
         uses: actions/checkout@v4
