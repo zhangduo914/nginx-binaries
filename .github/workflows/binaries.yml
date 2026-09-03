@@ -11,6 +11,7 @@ on:
       - patches/*
       - scripts/*
   pull_request:
+  workflow_dispatch:
 
 env:
   ALPINE_BRANCH: v3.18
