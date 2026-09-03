@@ -22,7 +22,6 @@ env:
   DARWIN_LDFLAGS: -Wl,-map,linker.map
   WIN32_LDFLAGS: -Wl,--as-needed -Wl,-Map,linker.map
   # List of extra nginx modules to download.
-  # NOTE: nginx/njs is not defined here, but directly in the jobs.
   NGINX_MODULES: >-
     kjdev/nginx-auth-jwt
     kjdev/nginx-keyval
@@ -42,118 +41,17 @@ env:
   env_test: ${{ secrets.CUSTOM_NGINX_VERSION }}
 
 jobs:
-  njs-multi-linux:
-    name: njs-${{ matrix.NJS_VERSION }}${{ matrix.VARIANT }}-${{ matrix.ARCH }}-linux
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        NJS_VERSION:
-          - 0.x.x
-        VARIANT:
-          - '-debug'
-          - ''
-        ARCH:
-          - x86_64
-          - aarch64
-          - ppc64le
-    steps:
-      - name: Checkout master branch
-        uses: actions/checkout@v6
-        with:
-          path: master
-
-      - name: Download and extract njs
-        run: ./master/scripts/fetch-sources -d . nginx/njs@${{ matrix.NJS_VERSION }}
-
-      - name: Install Alpine ${{ env.ALPINE_BRANCH }} for ${{ matrix.ARCH }}
-        uses: jirutka/setup-alpine@v1
-        with:
-          arch: ${{ matrix.ARCH }}
-          branch: ${{ env.ALPINE_BRANCH }}
-          packages: >
-            build-base
-            libedit-dev
-            libedit-static
-            ncurses-dev
-            ncurses-static
-            openssl-dev
-            openssl-libs-static
-            pcre-dev
-            zlib-static
-
-      - name: Build njs
-        env:
-          VARIANT: ${{ matrix.VARIANT }}
-          CFLAGS: ${{ env.CFLAGS }}
-          LDFLAGS: ${{ env.LINUX_LDFLAGS }}
-        run: ./master/scripts/build-njs
-        shell: alpine.sh {0}
-
-      - name: Upload njs binary to artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: njs-${{ matrix.NJS_VERSION }}${{ matrix.VARIANT }}-${{ matrix.ARCH }}-linux
-          path: artifact/*
-
-  njs-x86_64-darwin:
-    name: njs-${{ matrix.NJS_VERSION }}${{ matrix.VARIANT }}-x86_64-darwin
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        NJS_VERSION:
-          - 0.x.x
-        VARIANT:
-          - '-debug'
-          - ''
-    steps:
-      - name: Install dependencies
-        run: brew install gsed jq libedit openssl@3 ncurses pcre zlib
-
-      - name: Checkout master branch
-        uses: actions/checkout@v6
-        with:
-          path: master
-
-      - name: Download and extract njs
-        run: ./master/scripts/fetch-sources -d . nginx/njs@${{ matrix.NJS_VERSION }}
-
-      # cmake prefers dynamic libs and there's no option to change it, so
-      # we have to remove them to give it no other option than using static.
-      - name: Remove dylibs
-        run: |
-          rm /opt/homebrew/opt/libedit/lib/*.dylib
-          rm /opt/homebrew/opt/openssl/lib/*.dylib
-          rm /opt/homebrew/opt/ncurses/lib/*.dylib
-          rm /opt/homebrew/opt/pcre/lib/*.dylib
-          rm /opt/homebrew/opt/zlib/lib/*.dylib
-
-      - name: Build njs
-        env:
-          VARIANT: ${{ matrix.VARIANT }}
-          CFLAGS: ${{ env.CFLAGS }} -I/opt/homebrew/opt/libedit/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/pcre/include -I/opt/homebrew/opt/zlib/include
-          LDFLAGS: ${{ env.DARWIN_LDFLAGS }} -L/opt/homebrew/opt/libedit/lib -L/opt/homebrew/opt/openssl/lib -L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/pcre/lib -L/opt/homebrew/opt/zlib/lib
-        run: ./master/scripts/build-njs
-
-      - name: Upload njs binary to artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: njs-${{ matrix.NJS_VERSION }}${{ matrix.VARIANT }}-x86_64-darwin
-          path: artifact/*
-
   nginx-multi-linux:
     name: nginx-${{ matrix.NGINX_VERSION }}-${{ matrix.ARCH }}-linux
     runs-on: ubuntu-latest
     strategy:
       matrix:
         NGINX_VERSION:
-          - 1.28.x
           - 1.31.x
         ARCH:
           - x86_64
           - aarch64
           - ppc64le
-        include:
-          - NJS_VERSION: 0.x.x
     steps:
       - name: Checkout master branch
         uses: actions/checkout@v6
@@ -164,7 +62,7 @@ jobs:
         run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }}  && sed -i 's/#define NGINX_VERSION[[:space:]]*"[^"]*"/#define NGINX_VERSION      "SHINDATA-1.24.0"/' src/core/nginx.h
 
       - name: Download and extract nginx modules
-        run: ./master/scripts/fetch-sources nginx/njs@${{ matrix.NJS_VERSION }} $NGINX_MODULES
+        run: ./master/scripts/fetch-sources $NGINX_MODULES
 
       - name: Install Alpine ${{ env.ALPINE_BRANCH }} for ${{ matrix.ARCH }}
         uses: jirutka/setup-alpine@v1
@@ -184,7 +82,7 @@ jobs:
 
       - name: Build nginx
         env:
-          NGINX_MODULES: nginx/njs ${{ env.NGINX_MODULES }}
+          NGINX_MODULES: ${{ env.NGINX_MODULES }}
           CFLAGS: ${{ env.CFLAGS }}
           LDFLAGS: ${{ env.LINUX_LDFLAGS }}
         run: ./master/scripts/build-nginx
@@ -202,13 +100,7 @@ jobs:
     strategy:
       matrix:
         NGINX_VERSION:
-          - 1.28.x
           - 1.31.x
-        include:
-          - NJS_VERSION: 0.x.x
-          # Pin older njs version for old nginx.
-          - NGINX_VERSION: 1.24.x
-            NJS_VERSION: 0.8.x
     steps:
       - name: Install dependencies
         run: brew install gsed jansson jq openssl@3 pcre zlib
@@ -222,7 +114,7 @@ jobs:
         run: ./master/scripts/fetch-sources -d . nginx/nginx@release-${{ matrix.NGINX_VERSION }}
 
       - name: Download and extract nginx modules
-        run: ./master/scripts/fetch-sources nginx/njs@${{ matrix.NJS_VERSION }} $NGINX_MODULES
+        run: ./master/scripts/fetch-sources $NGINX_MODULES
 
       # cmake prefers dynamic libs and there's no option to change it, so
       # we have to remove them to give it no other option than using static.
@@ -235,7 +127,7 @@ jobs:
 
       - name: Build nginx
         env:
-          NGINX_MODULES: nginx/njs ${{ env.NGINX_MODULES }}
+          NGINX_MODULES: ${{ env.NGINX_MODULES }}
           CFLAGS: ${{ env.CFLAGS }} -I/opt/homebrew/opt/jansson/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/opt/pcre/include -I/opt/homebrew/opt/zlib/include
           LDFLAGS: ${{ env.DARWIN_LDFLAGS }} -L/opt/homebrew/opt/jansson/lib -L/opt/homebrew/opt/openssl/lib -L/opt/homebrew/opt/pcre/lib -L/opt/homebrew/opt/zlib/lib
         run: ./master/scripts/build-nginx
@@ -252,7 +144,6 @@ jobs:
     strategy:
       matrix:
         NGINX_VERSION:
-          - 1.28.x
           - 1.31.x
     steps:
       - name: Setup MSYS2 and install packages
@@ -313,8 +204,6 @@ jobs:
   upload:
     name: Upload binaries
     needs:
-      - njs-multi-linux
-      - njs-x86_64-darwin
       - nginx-multi-linux
       - nginx-x86_64-darwin
       - nginx-x86_64-win32
@@ -346,7 +235,7 @@ jobs:
       - name: List unpacked artifact files
         run: ls -lah artifact/
 
-      # XXX: Windows builds of nginx and macOS builds of njs-debug are not reproducible.
+      # XXX: Windows builds of nginx are not reproducible.
       #  This is a workaround to avoid unnecessary updates of binaries that are built from
       #  very same sources as the existing (note that we track even used system libs).
       - name: Move binaries with changed source checksums to the repository
