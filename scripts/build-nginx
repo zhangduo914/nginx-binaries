@@ -67,6 +67,10 @@ configure() {
 		--with-http_stub_status_module \
 		--without-http_grpc_module \
 		--without-http_memcached_module \
+		--with-stream \
+		--with-stream_ssl_module \
+		--with-stream_realip_module \
+		--with-stream_ssl_preread_module \
 		"$@"
 
 	# Don't load openssl.cnf unless the OPENSSL_CONF env. variable is
