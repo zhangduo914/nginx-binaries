@@ -57,6 +57,38 @@ github_curl() {
 		"$@"
 }
 
+fetch_github_submodules() {
+	local repo_slug=$1
+	local ref=$2
+	local dir=$3
+	local tree_url="https://api.github.com/repos/$repo_slug/git/trees/$ref"
+	local tree path repo sha url filename size hash
+
+	tree=$(github_curl "$tree_url")
+
+	git config -f "$dir/.gitmodules" --get-regexp '^submodule\..*\.path$' \
+		| while read -r key path; do
+			repo=$(git config -f "$dir/.gitmodules" --get "${key%.path}.url")
+			repo=${repo#https://github.com/}
+			repo=${repo%.git}
+			sha=$(printf '%s\n' "$tree" | jq -er --arg path "$path" \
+				'.tree[] | select(.path == $path and .mode == "160000") | .sha')
+			url="https://github.com/$repo/archive/$sha/${repo#*/}-$sha.tar.gz"
+			filename=$(basename "$url")
+
+			echo "Downloading $url" >&2
+			curl -L --retry 3 -o "$filename" "$url"
+			size=$(filesize "$filename")
+			hash=$(checksum "$filename")
+
+			mkdir -p "$dir/$path"
+			tar --strip-components=1 -C "$dir/$path" -xf "$filename"
+			rm "$filename"
+
+			echo "$url $size $hash $sha ${repo#*/}" | tee -a .SOURCES
+		done
+}
+
 
 DEST_DIR=
 case "${1:-}" in
@@ -112,6 +144,10 @@ for item in "$@"; do
 	case "$name-$ver" in
 		nginx/njs-0.7.12) patch --batch -d "$dir" -p1 < master/patches/njs-0.7.12-fix-module-build.patch;;
 		nginx/nginx-1.24.*) patch --batch -d "$dir" -p1 < master/patches/nginx-1.24.x-avoid-using-openssl-config.patch;;
+	esac
+
+	case "$name" in
+		kjdev/nginx-auth-jwt) fetch_github_submodules "$name" "$tag" "$dir";;
 	esac
 
 	echo "$url $size $hash $ver ${name#*/}" | tee -a .SOURCES
